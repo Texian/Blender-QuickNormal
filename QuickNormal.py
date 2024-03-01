@@ -9,7 +9,7 @@ bl_info = {
     "name": "QuickNormal",
     "author": "Christian Walters",
     "description": "Quick and dirty image to normal map converter",
-    "version": (0, 6, 1),
+    "version": (0, 7, 1),
     "blender": (2, 80, 0),
     "location": "Material Properties",
     "category": "Material",
@@ -33,9 +33,9 @@ class QuickNormalMapPanel(bpy.types.Panel):
         
         col = layout.column(align=True)
         col.label(text="Select an image")
-        col.template_ID_preview(scene, "quick_normal_map_image", new="image.new", open="image.open")
+        col.template_ID_preview(scene, "quick_normal_map_image", open="image.open")
         
-        col.operator("quick.normal_generate", text="Normal Map Image")
+        col.operator("quick.normal_generate", text="Generate Normal Map")
 
 # Manual implementation of scipy's convolve2d() function
 def convolve2d_manual(image, kernel):
@@ -117,6 +117,21 @@ class QuickNormalMapOperator(bpy.types.Operator):
         normal_map_image = bpy.data.images.new(name=new_name, width=width, height=height, alpha=True)
         normal_map_image.pixels = list(normal_map_flattened)
         
+        normal_map_image.update()
+        context.scene.quick_normal_map_image = normal_map_image
+        
+        # Save normal map image to the local hard drive
+        if original_image.filepath_raw:
+            base_path = os.path.dirname(bpy.path.abspath(original_image.filepath_raw))
+        else:
+            base_path = bpy.app.tempdir
+
+        save_path = os.path.join(base_path, new_name)
+
+        normal_map_image.filepath_raw = save_path
+        normal_map_image.file_format = file_extension[1:].upper()
+        normal_map_image.save()
+
         # Save and pack image to blend file     
         #normal_map_image.pack() 
         self.report({'INFO'}, f"Normal map: {normal_map_image.name}")
